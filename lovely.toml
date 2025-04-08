@@ -1,0 +1,14 @@
+[manifest]
+version = "1.0.0"
+dump_lua = true
+priority = 116
+
+[[patches]]
+[patches.pattern]
+target = "functions/common_events.lua"
+pattern = "local info_queue = {}"
+position = "after"
+payload = '''if _c.wip and card_type == "Locked" and _c.Pingo_info_queue then
+    info_queue = _c.Pingo_info_queue
+end'''
+match_indent = true

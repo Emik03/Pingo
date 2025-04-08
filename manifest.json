@@ -1,0 +1,21 @@
+{
+    "id": "Pingo",
+    "name": "Pingo",
+    "priority": 8080,
+    "prefix": "Pingo",
+    "author": [
+        "Emik"
+    ],
+    "version": "0.9.9",
+    "display_name": "Pingo",
+    "badge_colour": "B17419",
+    "main_file": "src/main.lua",
+    "badge_text_colour": "B17419",
+    "description": "An unofficial add-on of the Balatro Archipelago Randomizer that adds basic logic for modded items.",
+    "provides": [],
+    "conflicts": [],
+    "dependencies": [
+        "Steamodded (>=1.0.0~ALPHA-1326a)",
+        "Rando (>=0.1.9d)"
+    ]
+}
