@@ -1,7 +1,7 @@
 # Pingo
 
-[Locked modded joker](assets/preview/joker.png)
-[Locked sleeve](assets/preview/sleeve.png)
+![Locked modded joker](assets/preview/joker.png)
+![Locked sleeve](assets/preview/sleeve.png)
 
 An unofficial add-on of the [Balatro Archipelago Randomizer](https://github.com/BurndiL/BalatroAP) that adds basic logic for modded items.
 
