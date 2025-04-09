@@ -78,19 +78,10 @@ local function make_new_checks()
     populate(builder, G.P_TAGS)
     populate(builder, G.P_CENTERS)
 
-    local function TableConcat(t1, t2)
-        for i = 1, #t2 do
-            t1[#t1 + 1] = t2[i]
-        end
-
-        return t1
-    end
-
     for _, tbl in pairs(builder) do
         for k, v in pairs(tbl) do
             if next(v) then
                 array[k] = v
-                -- array["v_nacho_tong"] = TableConcat(array["v_nacho_tong"] or {}, v)
             end
         end
     end
