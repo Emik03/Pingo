@@ -255,4 +255,4 @@ local function init()
     return true
 end
 
-G.E_MANAGER:add_event(Event {delay = 5, func = init, trigger = "after"})
+G.E_MANAGER:add_event(Event {func = init})
