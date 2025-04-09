@@ -82,9 +82,19 @@ local function load()
 end
 
 --- Updates the lock status of the center.
----@param center any
----@param unlocked any
-local function update_lock_status(center, unlocked)
+---@param id string
+---@param center table
+---@param unlocked boolean
+local function update_lock_status(id, center, unlocked)
+    if not center then
+        -- Should only ever be nil if modded items are set to "Remove"
+        if G.AP.this_mod.config.modded == 1 then
+            return
+        end
+
+        error("Cannot find object for the id '" .. id .. "', please report this immediately!")
+    end
+
     center.hidden = not unlocked and G.AP.this_mod.config.modded == 2
     center.ap_unlocked = unlocked
     center.discovered = unlocked
@@ -131,6 +141,7 @@ local function init()
                 local set = (center or {}).set
 
                 if set == "Sleeve" and not center.locked_loc_vars then
+                    -- Prevents crash in CardSleeves where locked_loc_vars isn't defined.
                     center.locked_loc_vars = function(_, _)
                         return {vars = {colours = {}}}
                     end
@@ -138,6 +149,7 @@ local function init()
                     center.Pingo_unapply_to_run = true
                     local orig_unapply_to_run = center.unapply_to_run
 
+                    --- Prevents crash or undesired behavior with Cryptid where vouchers get unredeemed while viewing the collection.
                     center.unapply_to_run = function(...)
                         if G.hand then
                             orig_unapply_to_run(...)
@@ -145,7 +157,7 @@ local function init()
                     end
                 end
 
-                update_lock_status(G.P_TAGS[id] or G.P_CENTERS[id], unlocked)
+                update_lock_status(id, G.P_TAGS[id] or G.P_CENTERS[id], unlocked)
             end
         end
 
@@ -225,14 +237,15 @@ local function init()
                 item = item.nextVoucher
             end
 
-            for _, it in pairs(mapper[item.key] or {}) do
-                update_lock_status(it, true)
+            for _, id in pairs(mapper[item.key] or {}) do
+                local center = G.P_TAGS[id] or G.P_CENTERS[id]
+                update_lock_status(id, center, true)
 
                 for _, v in pairs({"jokers", "consumeables", "shop_jokers", "pack_cards"}) do
-                    buff(v, it.key)
+                    buff(v, center.key)
                 end
 
-                notify(it.key)
+                notify(center.key)
             end
         end
 
@@ -242,4 +255,4 @@ local function init()
     return true
 end
 
-G.E_MANAGER:add_event(Event {func = init})
+G.E_MANAGER:add_event(Event {delay = 5, func = init, trigger = "after"})
