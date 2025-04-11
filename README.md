@@ -14,6 +14,14 @@ Modded decks and stakes are not supported, since it interferes with the original
 
 ![Locked card sleeve](assets/preview/sleeve.png)
 
+# FAQ
+
+> I cannot see "ARCHIPELAGO" in the save file menu!
+This is caused by Cryptid overriding the save file menu, you will need to modify the original Archipelago source code. In the `Mods/BalatroAP` directory, open the `randomizer.lua` file and paste the following just below the `--- STEAMODDED HEADER` portion to its own line:
+```lua
+--- PRIORITY: 8000
+```
+
 # Installation
 
 Dependencies:

@@ -1,19 +1,19 @@
---- Sets the state of the sprite.
----@param s Sprite?
-local function state(s)
-    if s then
-        local states = s["states"]
-        states.collide.can = false
-        states.hover.can = false
-        states.drag.can = false
-    end
-end
-
 --- Creates the notification table for highlighting the specific center being unlocked.
----@param center SMODS.Center
+---@param key string
 ---@return table
-local function create(center)
-    local c = G.P_CENTERS[center]
+local function create(key)
+    --- Sets the state of the sprite.
+    ---@param s Sprite?
+    local function state(s)
+        if s then
+            local states = s["states"]
+            states.collide.can = false
+            states.hover.can = false
+            states.drag.can = false
+        end
+    end
+
+    local c = G.P_CENTERS[key]
     local atlas = c and G.ASSET_ATLAS[c.atlas]
     local name = (c and ((G.localization.descriptions[c.set] or {})[c.key] or {}).name) or "ERROR"
     local ts = c and Sprite(0, 0, 1.5 * (atlas.px / atlas.py), 1.5, atlas, c and c.pos or {x = 0, y = 0})
@@ -23,59 +23,78 @@ local function create(center)
 
     return {
         n = G.UIT.ROOT,
-        config = {align = "cl", r = 0.1, padding = 0.06, colour = G.C.UI.TRANSPARENT_DARK},
+        config = {
+            r = 0.1,
+            align = "cl",
+            padding = 0.06,
+            colour = G.C.UI.TRANSPARENT_DARK,
+        },
         nodes = {{
             n = G.UIT.R,
             config = {
-                align = "cl",
-                padding = 0.3,
-                minw = 20,
                 r = 0.1,
-                colour = G.C.BLACK,
+                minw = 20,
+                align = "cl",
                 outline = 1.5,
+                padding = 0.2,
+                colour = G.C.BLACK,
                 outline_colour = G.C.GREY,
             },
             nodes = {{
                 n = G.UIT.R,
-                config = {align = "cm", r = 0.1, padding = 0.7},
+                config = {r = 0.1, align = "cm"},
                 nodes = {{
                     n = G.UIT.R,
-                    config = {align = "cm", r = 0.1, padding = -1.1},
-                    nodes = {
-                        ts and {n = G.UIT.O, config = {object = ts}},
-                        soul_ts and {n = G.UIT.O, config = {object = soul_ts}},
-                    },
+                    config = {r = 0.1, align = "cm", padding = 0.75},
+                    nodes = {{
+                        n = G.UIT.R,
+                        config = {
+                            r = 0.1,
+                            align = "cm",
+                            padding = -1.12,
+                        },
+                        nodes = {
+                            {n = G.UIT.O, config = {object = ts}},
+                            {n = G.UIT.O, config = {object = soul_ts}},
+                        },
+                    }},
                 }, {
                     n = G.UIT.R,
-                    config = {align = "bm", padding = 0.2},
-                    nodes = {
-                        {
-                            n = G.UIT.R,
-                            config = {align = "bm", maxw = 3.4},
-                            nodes = {{
-                                n = G.UIT.T,
-                                config = {
-                                    text = name:gsub("#b%{%}", ""):gsub("%b##", ""),
-                                    scale = 0.5,
-                                    colour = G.C.FILTER,
-                                    shadow = true,
-                                },
-                            }},
-                        },
-                        {
-                            n = G.UIT.R,
-                            config = {align = "bm", maxw = 3.4},
-                            nodes = {{
-                                n = G.UIT.T,
-                                config = {
-                                    text = localize("k_unlocked_ex"),
-                                    scale = 0.35,
-                                    colour = G.C.FILTER,
-                                    shadow = true,
-                                },
-                            }},
-                        },
+                    config = {
+                        align = "cm",
+                        padding = 0.04,
                     },
+                    nodes = {{
+                        n = G.UIT.R,
+                        config = {
+                            align = "cm",
+                            maxw = 3.4,
+                        },
+                        nodes = {{
+                            n = G.UIT.T,
+                            config = {
+                                scale = 0.3,
+                                shadow = true,
+                                colour = G.C.FILTER,
+                                text = name:gsub("%{.*%}", ""):gsub("#.*#", ""),
+                            },
+                        }},
+                    }, {
+                        n = G.UIT.R,
+                        config = {
+                            maxw = 3.4,
+                            align = "cm",
+                        },
+                        nodes = {{
+                            n = G.UIT.T,
+                            config = {
+                                scale = 0.35,
+                                shadow = true,
+                                colour = G.C.FILTER,
+                                text = localize("k_unlocked_ex"),
+                            },
+                        }},
+                    }},
                 }},
             }},
         }},
@@ -118,8 +137,8 @@ local function remove()
 end
 
 --- Displays the notification to highlight the specific center being unlocked.
----@param center SMODS.Center
-local function notify(center)
+---@param key string
+local function notify(key)
     --- Removes the existing notification to be replaced with the new one.
     ---@return true
     local function capture()
@@ -129,7 +148,7 @@ local function notify(center)
         end
 
         G.achievement_notification = G.achievement_notification or UIBox {
-            definition = create(center),
+            definition = create(key),
             config = {align = "cr", offset = {x = 20, y = 0}, major = G.ROOM_ATTACH, bond = "Weak"},
         }
 

@@ -5,7 +5,7 @@ SMODS.Atlas({
     py = 32,
 })
 
-local notify = assert(SMODS.load_file("src/notify.lua", "Pingo"))()
+local notify_unlock = assert(SMODS.load_file("src/notify.lua", "Pingo"))()
 
 local orig_unapply_to_run = Card.unapply_to_run
 
@@ -92,7 +92,12 @@ local function update_lock_status(id, center, unlocked)
             return
         end
 
-        error("Cannot find object for the id '" .. id .. "', please report this immediately!")
+        sendErrorMessage("Cannot find modded object with the id: " .. id, "Pingo")
+
+        sendWarnMessage(
+            "Ensure 'Modded Items' is not set to 'Remove' and make sure mapper.lua has all modded items, or delete the file to force it to refresh!",
+            "Pingo"
+        )
     end
 
     center.hidden = not unlocked and G.AP.this_mod.config.modded == 2
@@ -205,47 +210,23 @@ local function init()
         end
     end
 
-    local orig_unlock = unlock
+    local orig_AP_unlock_item = G.FUNCS.AP_unlock_item
 
-    ---@diagnostic disable-next-line: lowercase-global
-    function unlock(item_key, ...)
-        local ret = orig_unlock(item_key, ...)
+    ---@diagnostic disable-next-line: duplicate-set-field
+    function G.FUNCS.AP_unlock_item(item, notify, ...)
+        ---@diagnostic disable-next-line: redundant-parameter
+        local ret = orig_AP_unlock_item(item, notify, ...)
 
-        if not isAPProfileLoaded() then
-            return ret
-        end
+        for _, id in pairs(mapper[item.key] or {}) do
+            local center = G.P_TAGS[id] or G.P_CENTERS[id]
+            update_lock_status(id, center, true)
 
-        local unlock_targets = {}
-
-        if string.find(item_key, "^p_") then
-            for _, v in pairs(G.P_CENTER_POOLS.Booster) do
-                if string.find(v.key, item_key) then
-                    unlock_targets[#unlock_targets + 1] = v
-                end
-            end
-        elseif G.P_CENTERS[item_key] then
-            unlock_targets[#unlock_targets + 1] = G.P_CENTERS[item_key]
-        end
-
-        for _, item in pairs(unlock_targets) do
-            if item.requires then
-                if (not G.P_CENTERS[item.requires[1]].unlocked) then
-                    G.P_CENTERS[item.requires[1]].nextVoucher = item
-                    item = G.P_CENTERS[item.requires[1]]
-                end
-            elseif item.nextVoucher then
-                item = item.nextVoucher
+            for _, v in pairs({"jokers", "consumeables", "shop_jokers", "pack_cards"}) do
+                buff(v, center.key)
             end
 
-            for _, id in pairs(mapper[item.key] or {}) do
-                local center = G.P_TAGS[id] or G.P_CENTERS[id]
-                update_lock_status(id, center, true)
-
-                for _, v in pairs({"jokers", "consumeables", "shop_jokers", "pack_cards"}) do
-                    buff(v, center.key)
-                end
-
-                notify(center.key)
+            if notify then
+                notify_unlock(center.key)
             end
         end
 
@@ -255,4 +236,4 @@ local function init()
     return true
 end
 
-G.E_MANAGER:add_event(Event {func = init})
+G.E_MANAGER:add_event(Event {func = init, trigger = "immediate"})
