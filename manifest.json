@@ -6,7 +6,7 @@
     "author": [
         "Emik"
     ],
-    "version": "1.0.2",
+    "version": "1.0.3",
     "display_name": "Pingo",
     "badge_colour": "B17419",
     "main_file": "src/main.lua",
@@ -15,7 +15,7 @@
     "provides": [],
     "conflicts": [],
     "dependencies": [
-        "Steamodded (>=1.0.0~ALPHA-1326a)",
+        "Steamodded (>=1.0.0~BETA-0312b)",
         "Rando (>=0.1.9d)"
     ]
 }

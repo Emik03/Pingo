@@ -3,7 +3,7 @@ return {
         Other = {
             Pingo_discover = {
                 "Discover {C:attention,T:#1#}#2#",
-                "to {C:attention}unlock {C:legendary}#3#",
+                "to unlock {C:dark_edition}#3#",
             },
         },
         Sleeve = {
@@ -11,7 +11,7 @@ return {
                 name = "Locked",
                 text = {
                     "Discover {C:attention,T:#1#}#2#",
-                    "to {C:attention}unlock {C:legendary}#3#",
+                    "to unlock {C:dark_edition}#3#",
                 },
             },
         },

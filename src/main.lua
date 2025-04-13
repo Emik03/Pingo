@@ -28,7 +28,7 @@ local function buff(set, key)
     end
 
     for _, v in pairs(g.cards) do
-        if v and type(v) == "table" and v.config.center.key == key then
+        if v and type(v) == "table" and key == v.config.center.key then
             v:set_debuff(false)
         end
     end
@@ -81,32 +81,6 @@ local function load()
     return mapper, reverse_mapper
 end
 
---- Updates the lock status of the center.
----@param id string
----@param center table
----@param unlocked boolean
-local function update_lock_status(id, center, unlocked)
-    if not center then
-        -- Should only ever be nil if modded items are set to "Remove"
-        if G.AP.this_mod.config.modded == 1 then
-            return
-        end
-
-        sendErrorMessage("Cannot find modded object with the id: " .. id, "Pingo")
-
-        sendWarnMessage(
-            "Ensure 'Modded Items' is not set to 'Remove' and make sure mapper.lua has all modded items, or delete the file to force it to refresh!",
-            "Pingo"
-        )
-    end
-
-    center.hidden = not unlocked and G.AP.this_mod.config.modded == 2
-    center.ap_unlocked = unlocked
-    center.discovered = unlocked
-    center.unlocked = unlocked
-    center.wip = not unlocked
-end
-
 --- Creates the localization variables for the locked check.
 ---@param vanilla SMODS.Center
 ---@param modded SMODS.Center
@@ -119,121 +93,149 @@ local function loc_vars(vanilla, modded)
     }
 end
 
---- Initializes the mod.
+--- Converts the given ID to the respective object.
+---@param id string
+---@return table
+local function to_object(id)
+    return G.P_TAGS[id] or G.P_CENTERS[id]
+end
+
+--- Updates the lock status of the center.
+---@param id string
+---@param center table
+---@param unlocked boolean
+local function update_lock_status(id, center, unlocked)
+    if center then
+        local unlocked_by_ap = ({Joker = true, Planet = true, Spectral = true, Tarot = true})[center.set]
+        center.discovered = unlocked or unlocked_by_ap or false
+        center.unlocked = unlocked or unlocked_by_ap or false
+        center.ap_unlocked = unlocked
+        center.debuff = not unlocked
+        center.wip = not unlocked
+        return
+    end
+
+    -- Should only ever be nil if modded items are set to "Remove"
+    if G.AP.this_mod.config.modded ~= 1 then
+        sendErrorMessage("Modded object with the following id doesn't exist: " .. id, "Pingo")
+    end
+end
+
+local mapper, reverse_mapper
+
+--- Sets the values of modded elements.
 ---@return true
-local function init()
-    local mapper, reverse_mapper = load()
-    local orig_init_item_prototypes = Game.init_item_prototypes
+local function init_item_prototypes()
+    for vanilla, mods in pairs(mapper) do
+        local vp = to_object(vanilla)
 
-    ---@diagnostic disable-next-line: duplicate-set-field
-    function Game:init_item_prototypes(...)
-        local ret = orig_init_item_prototypes(self, ...)
-        mapper, reverse_mapper = load()
+        local unlocked = vp.ap_unlocked or
+            vp.ap_unlocked == nil and vp.unlocked or
+            vp.set == "Booster" and vp.discovered
 
-        if not isAPProfileLoaded() then
-            return ret
-        end
+        for _, id in pairs(mods) do
+            local center = to_object(id)
+            local set = (center or {}).set
 
-        for vanilla, mods in pairs(mapper) do
-            local vp = G.P_TAGS[vanilla] or G.P_CENTERS[vanilla]
+            if set == "Sleeve" and not center.locked_loc_vars then
+                -- Prevents crash in CardSleeves where locked_loc_vars isn't defined.
+                center.locked_loc_vars = function(_, _)
+                    return {vars = {colours = {}}}
+                end
+            elseif set == "Voucher" and center.unapply_to_run and not center.Pingo_unapply_to_run then
+                center.Pingo_unapply_to_run = true
+                local orig_unapply_to_run = center.unapply_to_run
 
-            local unlocked = vp.ap_unlocked or
-                vp.ap_unlocked == nil and vp.unlocked or
-                vp.set == "Booster" and vp.discovered
-
-            for _, id in pairs(mods) do
-                local center = G.P_CENTERS[id]
-                local set = (center or {}).set
-
-                if set == "Sleeve" and not center.locked_loc_vars then
-                    -- Prevents crash in CardSleeves where locked_loc_vars isn't defined.
-                    center.locked_loc_vars = function(_, _)
-                        return {vars = {colours = {}}}
-                    end
-                elseif set == "Voucher" and center.unapply_to_run and not center.Pingo_unapply_to_run then
-                    center.Pingo_unapply_to_run = true
-                    local orig_unapply_to_run = center.unapply_to_run
-
-                    --- Prevents crash or undesired behavior with Cryptid where vouchers get unredeemed while viewing the collection.
-                    center.unapply_to_run = function(...)
-                        if G.hand then
-                            orig_unapply_to_run(...)
-                        end
+                --- Prevents crash or undesired behavior with Cryptid where vouchser get unredeemed while viewing the collection.
+                center.unapply_to_run = function(...)
+                    if G.hand then
+                        orig_unapply_to_run(...)
                     end
                 end
-
-                update_lock_status(id, G.P_TAGS[id] or G.P_CENTERS[id], unlocked)
-            end
-        end
-
-        return ret
-    end
-
-    local orig_generate_card_ui = generate_card_ui
-
-    function generate_card_ui(_c, ...)
-        local vanilla_key = reverse_mapper[_c.key]
-
-        if not isAPProfileLoaded() or not vanilla_key then
-            return orig_generate_card_ui(_c, ...)
-        end
-
-        G.localization.descriptions.Other.wip_locked.text_parsed = {}
-        local vanilla = G.P_TAGS[vanilla_key] or G.P_CENTERS[vanilla_key]
-        local vars = loc_vars(vanilla, _c)
-
-        for i, v in ipairs(G.localization.descriptions.Other.Pingo_discover) do
-            local loc = v:gsub("#1#", vars[1]):gsub("#2#", vars[2]):gsub("#3#", vars[3])
-            G.localization.descriptions.Other.wip_locked.text_parsed[i] = loc_parse_string(loc)
-        end
-
-        _c.Pingo_info_queue = {vanilla}
-        local ret = orig_generate_card_ui(_c, ...)
-        _c.Pingo_info_queue = nil
-        return ret
-    end
-
-    local orig_locked_loc_vars = (((CardSleeves or {}).Sleeve or {}) or {}).locked_loc_vars
-
-    if orig_locked_loc_vars then
-        function CardSleeves.Sleeve:locked_loc_vars(info_queue, card)
-            if not isAPProfileLoaded() then
-                return orig_locked_loc_vars(self, info_queue, card)
             end
 
-            local vanilla = reverse_mapper[self.key]
-
-            return {
-                key = "Pingo_sleeve_discover",
-                vars = loc_vars(G.P_TAGS[vanilla] or G.P_CENTERS[vanilla], self),
-            }
+            update_lock_status(id, center, unlocked)
         end
-    end
-
-    local orig_AP_unlock_item = G.FUNCS.AP_unlock_item
-
-    ---@diagnostic disable-next-line: duplicate-set-field
-    function G.FUNCS.AP_unlock_item(item, notify, ...)
-        ---@diagnostic disable-next-line: redundant-parameter
-        local ret = orig_AP_unlock_item(item, notify, ...)
-
-        for _, id in pairs(mapper[item.key] or {}) do
-            local center = G.P_TAGS[id] or G.P_CENTERS[id]
-            update_lock_status(id, center, true)
-
-            for _, v in pairs({"jokers", "consumeables", "shop_jokers", "pack_cards"}) do
-                buff(v, center.key)
-            end
-
-            if notify then
-                notify_unlock(center.key)
-            end
-        end
-
-        return ret
     end
 
     return true
 end
 
-G.E_MANAGER:add_event(Event {func = init, trigger = "immediate"})
+local orig_generate_card_ui = generate_card_ui
+
+function generate_card_ui(_c, full_UI_table, specific_vars, card_type, ...)
+    if not isAPProfileLoaded() then
+        return orig_generate_card_ui(_c, full_UI_table, specific_vars, card_type, ...)
+    end
+
+    local vanilla_key = reverse_mapper[_c.key]
+    local wip_locked = G.localization.descriptions.Other.wip_locked
+
+    if not vanilla_key then
+        wip_locked.text_parsed = wip_locked.Pingo_text_parsed or wip_locked.text_parsed
+        return orig_generate_card_ui(_c, full_UI_table, specific_vars, card_type, ...)
+    end
+
+    local vanilla = to_object(vanilla_key)
+    local vars = loc_vars(vanilla, _c)
+    wip_locked.Pingo_text_parsed = wip_locked.Pingo_text_parsed or wip_locked.text_parsed
+    wip_locked.text_parsed = {}
+
+    for i, v in ipairs(G.localization.descriptions.Other.Pingo_discover) do
+        local loc = v:gsub("#1#", vars[1]):gsub("#2#", vars[2]):gsub("#3#", vars[3])
+        wip_locked.text_parsed[i] = loc_parse_string(loc)
+    end
+
+    local ui = orig_generate_card_ui(_c, full_UI_table, specific_vars, _c.ap_unlocked and card_type or "Locked", ...)
+    return G.STATE == G.STATES.MENU and ui or orig_generate_card_ui(vanilla, ui)
+end
+
+local orig_init_item_prototypes = Game.init_item_prototypes
+
+---@diagnostic disable-next-line: duplicate-set-field
+function Game:init_item_prototypes(...)
+    local ret = orig_init_item_prototypes(self, ...)
+    mapper, reverse_mapper = load()
+
+    if isAPProfileLoaded() then
+        init_item_prototypes()
+        G.E_MANAGER:add_event(Event {func = init_item_prototypes, trigger = "immediate"})
+    end
+
+    return ret
+end
+
+local orig_AP_unlock_item = G.FUNCS.AP_unlock_item
+
+---@diagnostic disable-next-line: duplicate-set-field
+function G.FUNCS.AP_unlock_item(item, notify, ...)
+    ---@diagnostic disable-next-line: redundant-parameter
+    local ret = orig_AP_unlock_item(item, notify, ...)
+
+    for _, id in pairs(mapper[item.key] or {}) do
+        local center = to_object(id)
+        update_lock_status(id, center, true)
+
+        for _, v in pairs({"jokers", "consumeables", "shop_jokers", "pack_cards"}) do
+            buff(v, center.key)
+        end
+
+        if notify then
+            notify_unlock(center.key)
+        end
+    end
+
+    return ret
+end
+
+local orig_locked_loc_vars = ((CardSleeves or {}).Sleeve or {}).locked_loc_vars
+
+if orig_locked_loc_vars then
+    ---@diagnostic disable-next-line: duplicate-set-field
+    function CardSleeves.Sleeve:locked_loc_vars(...)
+        return isAPProfileLoaded() and {
+            key = "Pingo_sleeve_discover",
+            vars = loc_vars(to_object(reverse_mapper[self.key]), self),
+        } or orig_locked_loc_vars(self, ...)
+    end
+end

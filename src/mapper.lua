@@ -4,6 +4,10 @@
 ---@param p table
 ---@return table?
 local function pseudorandom_smallest_table(tbl, center, p)
+    if not tbl then
+        return nil
+    end
+
     local smallest_groups = {}
     local same_rarity = {}
     local min = 1 / 0
@@ -60,13 +64,17 @@ local function populate(data, p)
     end
 
     for _, v in pairs(p) do
-        if v.set and not
+        if v.original_mod and
+            v.original_mod.id ~= "Rando" and
+            v.set and not
             unsupported_sets[v.set] and not
-            unsupported_keys[v.key] and
-            v.original_mod then
+            unsupported_keys[v.key] then
             local tbl = data[v.set]
             local key = pseudorandom_smallest_table(tbl or pseudorandom_element(data), v, p)
-            key[#key + 1] = v.key
+
+            if key then
+                key[#key + 1] = v.key
+            end
         end
     end
 end
