@@ -1,3 +1,41 @@
+local header = [[
+--
+--     88                                     88                            88
+--     88                                     ""                            88
+--     88                                                                   88
+--     88      ,adPPYba,       ,adPPYb,d8     88      ,adPPYba,             88     88       88     ,adPPYYba,
+--     88     a8"     "8a     a8"    `Y88     88     a8"     ""             88     88       88     ""     `Y8
+--     88     8b       d8     8b       88     88     8b                     88     88       88     ,adPPPPP88
+--     88     "8a,   ,a8"     "8a,   ,d88     88     "8a,   ,aa     888     88     "8a,   ,a88     88,    ,88
+--     88      `"YbbdP"'       `"YbbdP"Y8     88      `"Ybbd8"'     888     88      `"YbbdP'Y8     `"8bbdP"Y8
+--                             aa,    ,88
+--                              "Y8bbdP"
+--
+--
+-- This is the file containing your modded checks.
+-- Each entry is a mapping between a vanilla check, and a modded one.
+-- This is also what is shown in-game when you hover over a locked modded item.
+--
+-- You are free to modify this file to manipulate the unlock conditions,
+-- such as moving all modded legendaries behind c_soul (The Soul).
+--
+-- If a modded check is placed behind multiple checks,
+-- only one is shown in-game but both of them will unlock the modded item.
+--
+-- Every string consists of 3 parts, separated by underscores:
+--     1. The general type of item. Here are the base game examples relevant:
+--         - c_ - Consumable, this includes Tarots and Spectrals
+--         - j_ - Joker
+--         - p_ - Booster Packs
+--         - v_ - Voucher
+--     2. The mod that it comes from, or nothing if it's from the base game.
+--     3. The ID of the item.
+--
+-- It is recommended to only cut and paste within this file instead of adding new IDs,
+-- which also decreases the chance of introducing typos. If you have added new mods,
+-- delete this file to force the mod to regenerate a new set to include the new IDs.
+]]
+
 --- Gets the random table that is also the shortest in length.
 ---@param tbl table?
 ---@param center SMODS.Center
@@ -81,7 +119,7 @@ end
 
 --- Creates modded logic, storing it in a file for future access.
 ---@return table
-local function make_new_checks()
+local function make_new_logic()
     local builder, array = {}, {}
     populate(builder, G.P_TAGS)
     populate(builder, G.P_CENTERS)
@@ -94,14 +132,14 @@ local function make_new_checks()
         end
     end
 
-    local _, err = NFS.write(SMODS.Mods["Pingo"].path .. "/logic.lua", "return " .. serialize(array))
+    local _, err = NFS.write(SMODS.Mods["Pingo"].path .. "/logic.lua", header .. "return " .. serialize(array))
 
     if err then
-        sendErrorMessage("Failed to write checks.lua: " .. err, "Pingo")
+        sendErrorMessage("Failed to write logic.lua: " .. err, "Pingo")
     end
 
     return array
 end
 
-local checks, err = SMODS.load_file("logic.lua", "Pingo")
-return not err and type(checks) == "function" and checks() or make_new_checks()
+local logic, err = SMODS.load_file("logic.lua", "Pingo")
+return not err and type(logic) == "function" and logic() or make_new_logic()

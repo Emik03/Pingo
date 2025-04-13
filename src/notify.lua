@@ -55,7 +55,7 @@ local function create(key)
                         },
                         nodes = {
                             {n = G.UIT.O, config = {object = ts}},
-                            {n = G.UIT.O, config = {object = soul_ts}},
+                            soul_ts and {n = G.UIT.O, config = {object = soul_ts}},
                         },
                     }},
                 }, {

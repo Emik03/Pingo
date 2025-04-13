@@ -10,7 +10,7 @@ When the game is launched with the mod installed, a `logic.lua` file will show u
 
 You are free to modify the file to move specific checks behind specific unlocks. Specifying the same modded check across multiple vanilla checks means that the modded check is unlocked when *any* of the vanilla checks are found. Removing a modded check from the list makes it fallback to the "Modded Items" setting under the Archipelago save file's config tab. Some modded elements (enhancements, editions, and tags) are intentionally not considered checks to remain consistent with the original mod.
 
-Modded decks and stakes are not supported, since it interferes with the original mod. Although, this mod provides dedicated support for [Card Sleeves](https://github.com/larswijn/CardSleeves).
+Modded decks are not supported, since it interferes with the original mod. Although, this mod provides dedicated support for [Card Sleeves](https://github.com/larswijn/CardSleeves).
 
 ![Locked card sleeve](assets/preview/sleeve.png)
 

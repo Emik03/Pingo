@@ -7,16 +7,6 @@ SMODS.Atlas({
 
 local notify_unlock = assert(SMODS.load_file("src/notify.lua", "Pingo"))()
 
-local orig_unapply_to_run = Card.unapply_to_run
-
-if orig_unapply_to_run then
-    function Card:unapply_to_run(...)
-        if G.hand then
-            orig_unapply_to_run(self, ...)
-        end
-    end
-end
-
 --- Removes the debuff status from the given card.
 ---@param set string
 ---@param key string
@@ -49,6 +39,10 @@ local function find_loc_name(center)
                 return name
             end
         end
+    end
+
+    if not center then
+        return G.localization.descriptions.Other.Pingo_no_check[1]
     end
 
     local name = ((G.localization.descriptions[center.set] or {})[center.key] or {}).name
@@ -121,7 +115,26 @@ local function update_lock_status(id, center, unlocked)
     end
 end
 
-local mapper, reverse_mapper
+local mapper, reverse_mapper, stake = {}, {}, {}
+
+--- Finds the modded stake for the correspond vanilla stake, if applicable.
+---@param i integer
+---@return integer
+local function find_stake(i)
+    local order = G.P_CENTER_POOLS.Stake[i].order
+
+    for vanilla_key, vanilla_value in pairs(G.P_STAKES) do
+        if stake[vanilla_key] and order == vanilla_value.order then
+            for modded_key, modded_value in pairs(G.P_STAKES) do
+                if modded_key == stake[vanilla_key] then
+                    return modded_value.order
+                end
+            end
+        end
+    end
+
+    return i
+end
 
 --- Sets the values of modded elements.
 ---@return true
@@ -158,6 +171,11 @@ local function init_item_prototypes()
         end
     end
 
+    -- Prevents softlock in CardSleeves when "Modded Items" are set to "Locked"
+    if G.P_CENTERS.sleeve_casl_none then
+        G.P_CENTERS.sleeve_casl_none.unlocked = true
+    end
+
     return true
 end
 
@@ -190,19 +208,114 @@ function generate_card_ui(_c, full_UI_table, specific_vars, card_type, ...)
     return G.STATE == G.STATES.MENU and ui or orig_generate_card_ui(vanilla, ui)
 end
 
+local orig_unapply_to_run = Card.unapply_to_run
+
+if orig_unapply_to_run then
+    function Card:unapply_to_run(...)
+        if G.hand then
+            orig_unapply_to_run(self, ...)
+        end
+    end
+end
+
 local orig_init_item_prototypes = Game.init_item_prototypes
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function Game:init_item_prototypes(...)
     local ret = orig_init_item_prototypes(self, ...)
     mapper, reverse_mapper = load()
+    stake = assert(SMODS.load_file("src/difficulty.lua", "Pingo"))()
 
     if isAPProfileLoaded() then
-        init_item_prototypes()
         G.E_MANAGER:add_event(Event {func = init_item_prototypes, trigger = "immediate"})
     end
 
     return ret
+end
+
+local orig_get_stake_col = get_stake_col
+
+---@diagnostic disable-next-line: lowercase-global
+function get_stake_col(i, ...)
+    return orig_get_stake_col(isAPProfileLoaded() and find_stake(i) or i, ...)
+end
+
+local orig_get_stake_sprite = get_stake_sprite
+
+---@diagnostic disable-next-line: lowercase-global
+function get_stake_sprite(_stake, _scale, ...)
+    if not isAPProfileLoaded() then
+        return orig_get_stake_sprite(_stake, _scale, ...)
+    end
+
+    local center
+    _stake = _stake or 1
+    _scale = _scale or 1
+    local find = find_stake(_stake)
+
+    for _, v in pairs(G.P_STAKES) do
+        if find == v.order then
+            center = v
+        end
+    end
+
+    if not center then
+        return orig_get_stake_sprite(_stake, _scale, ...)
+    end
+
+    local stake_sprite = Sprite(0, 0, _scale, _scale, G.ASSET_ATLAS[center.atlas], center.pos)
+
+    if center.shiny then
+        stake_sprite.draw = function(_sprite)
+            _sprite.ARGS.send_to_shader = _sprite.ARGS.send_to_shader or {}
+
+            _sprite.ARGS.send_to_shader[1] =
+                math.min(_sprite.VT.r * 3, 1) + G.TIMERS.REAL / (18) + (_sprite.juice and _sprite.juice.r * 20 or 0) + 1
+
+            _sprite.ARGS.send_to_shader[2] = G.TIMERS.REAL
+
+            Sprite.draw_shader(_sprite, "dissolve")
+            Sprite.draw_shader(_sprite, "voucher", nil, _sprite.ARGS.send_to_shader)
+        end
+    end
+
+    return stake_sprite
+end
+
+local orig_localize = localize
+
+---@diagnostic disable-next-line: lowercase-global
+function localize(args, ...)
+    if isAPProfileLoaded() and stake[args.key] then
+        args.key = stake[args.key]
+    end
+
+    return orig_localize(args, ...)
+end
+
+local orig_setup_stake = G.AP.setup_stake
+
+---@diagnostic disable-next-line: duplicate-set-field
+function G.AP.setup_stake(i, ...)
+    local center
+    local find = find_stake(i)
+
+    for _, v in pairs(G.P_STAKES) do
+        if find == v.order then
+            center = v
+        end
+    end
+
+    for k, _ in pairs(center and SMODS.build_stake_chain(center) or {}) do
+        for _, v in pairs(G.P_STAKES) do
+            if k == v.order and v.modifiers then
+                print(v.name)
+                v.modifiers()
+            end
+        end
+    end
+
+    return orig_setup_stake(i, ...)
 end
 
 local orig_AP_unlock_item = G.FUNCS.AP_unlock_item
