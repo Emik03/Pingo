@@ -13,9 +13,20 @@ local header = [[
 -- This is the file that allows support for modded stakes.
 -- Each entry is a mapping between the vanilla stake that is shown,
 -- and the modded one meant to override for that stake.
+-- You can also map vanilla stakes to other vanilla stakes.
 --
 -- You are free to modify this file as you wish.
 -- If left untouched, this file does nothing and the standard vanilla checks are used.
+--
+-- Additionally, there's a custom parameter named "scaling_stakes"
+-- which automatically scales the modded stakes based on completion.
+--
+-- For example, setting this value to 2 with your goal set to beat
+-- all 15 decks means every 2 deck completions raises the stakes.
+-- At 14 deck completions, stake increases by 7, turning White Stake to Gold Stake.
+--
+-- Decimal and negative values are supported.
+-- If set to 0, this feature is effectively disabled.
 --
 -- Below are all stakes that can be used. Copy-paste the ID (after each colon)
 -- within the quotes of the stake you wish to apply the modded stake to:
@@ -25,6 +36,7 @@ local header = [[
 ---@return table
 local function make_new_stakes()
     local vanillas = {
+        scaling_stakes = 0,
         stake_white = "",
         stake_red = "",
         stake_green = "",
@@ -45,11 +57,7 @@ local function make_new_stakes()
     table.sort(stakes, function(x, y) return x[1] < y[1] end)
 
     for _, v in pairs(stakes) do
-        local k = v[2]
-
-        if not vanillas[k] then
-            str = str .. "--     - " .. G.localization.descriptions.Stake[k].name .. ": " .. k .. "\n"
-        end
+        str = str .. "--     - " .. G.localization.descriptions.Stake[v[2]].name .. ": " .. v[2] .. "\n"
     end
 
     local _, err = NFS.write(SMODS.Mods["Pingo"].path .. "/stake.lua", str .. "return " .. serialize(vanillas))

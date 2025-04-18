@@ -117,6 +117,17 @@ end
 
 local mapper, reverse_mapper, stake = {}, {}, {}
 
+--- Gets the stake offset amount.
+---@return integer
+local function scaling_stakes()
+    if type(stake.scaling_stakes) ~= "number" or stake.scaling_stakes == 0 then
+        return 0
+    end
+
+    local p = G.AP.check_progress() * (1 / stake.scaling_stakes)
+    return p > 0 and math.floor(p) or math.ceil(p)
+end
+
 --- Finds the modded stake for the correspond vanilla stake, if applicable.
 ---@param i integer
 ---@return integer
@@ -126,14 +137,32 @@ local function find_stake(i)
     for vanilla_key, vanilla_value in pairs(G.P_STAKES) do
         if stake[vanilla_key] and order == vanilla_value.order then
             for modded_key, modded_value in pairs(G.P_STAKES) do
-                if modded_key == stake[vanilla_key] then
-                    return modded_value.order
+                if modded_key == (type(stake[vanilla_key]) == "string" and #stake[vanilla_key] > 0 and stake[vanilla_key] or vanilla_key) then
+                    local scaled_order = scaling_stakes()
+
+                    if scaled_order == 0 then
+                        return modded_value.order
+                    end
+
+                    for _, scaled_value in pairs(G.P_STAKES) do
+                        if scaled_order + modded_value.order == scaled_value.order then
+                            return scaled_order + modded_value.order
+                        end
+                    end
+
+                    local max, min = -1 / 0, 1 / 0
+
+                    for _, value in pairs(G.P_STAKES) do
+                        max, min = math.max(max, value.order), math.min(min, value.order)
+                    end
+
+                    return scaled_order + modded_value.order > max and max or min
                 end
             end
         end
     end
 
-    return i
+    return order
 end
 
 --- Sets the values of modded elements.
@@ -286,8 +315,29 @@ local orig_localize = localize
 
 ---@diagnostic disable-next-line: lowercase-global
 function localize(args, ...)
-    if isAPProfileLoaded() and stake[args.key] then
-        args.key = stake[args.key]
+    if not isAPProfileLoaded() or type(args) ~= "table" then
+        return orig_localize(args, ...)
+    end
+
+    local key = type(stake[args.key]) == "string" and #stake[args.key] > 0 and stake[args.key] or args.key
+
+    if scaling_stakes() == 0 then
+        args.key = key
+    else
+        for i, center in ipairs(G.P_CENTER_POOLS.Stake) do
+            if key == center.key then
+                local order = find_stake(i)
+
+                for k, v in pairs(G.P_STAKES) do
+                    if order == v.order then
+                        args.key = k
+                        break
+                    end
+                end
+
+                break
+            end
+        end
     end
 
     return orig_localize(args, ...)
@@ -309,7 +359,6 @@ function G.AP.setup_stake(i, ...)
     for k, _ in pairs(center and SMODS.build_stake_chain(center) or {}) do
         for _, v in pairs(G.P_STAKES) do
             if k == v.order and v.modifiers then
-                print(v.name)
                 v.modifiers()
             end
         end
