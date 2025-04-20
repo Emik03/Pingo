@@ -202,7 +202,7 @@ local function init_item_prototypes()
 
     -- Prevents softlock in CardSleeves when "Modded Items" are set to "Locked"
     if G.P_CENTERS.sleeve_casl_none then
-        G.P_CENTERS.sleeve_casl_none.unlocked = true
+        update_lock_status("sleeve_casl_none", G.P_CENTERS.sleeve_casl_none, true)
     end
 
     return true
@@ -224,6 +224,11 @@ function generate_card_ui(_c, full_UI_table, specific_vars, card_type, ...)
     end
 
     local vanilla = to_object(vanilla_key)
+
+    if vanilla.ap_unlocked then
+        return orig_generate_card_ui(_c, full_UI_table, specific_vars, card_type, ...)
+    end
+
     local vars = loc_vars(vanilla, _c)
     wip_locked.Pingo_text_parsed = wip_locked.Pingo_text_parsed or wip_locked.text_parsed
     wip_locked.text_parsed = {}
@@ -315,6 +320,10 @@ local orig_localize = localize
 
 ---@diagnostic disable-next-line: lowercase-global
 function localize(args, ...)
+    if type(args) == "table" and args.vars then
+        args.vars.colours = args.vars.colours or {}
+    end
+
     if not isAPProfileLoaded() or type(args) ~= "table" then
         return orig_localize(args, ...)
     end
