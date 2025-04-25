@@ -233,7 +233,7 @@ function generate_card_ui(_c, full_UI_table, specific_vars, card_type, ...)
     wip_locked.Pingo_text_parsed = wip_locked.Pingo_text_parsed or wip_locked.text_parsed
     wip_locked.text_parsed = {}
 
-    for i, v in ipairs(G.localization.descriptions.Other.Pingo_discover) do
+    for i, v in ipairs(G.localization.descriptions.Other.Pingo_find) do
         local loc = v:gsub("#1#", vars[1]):gsub("#2#", vars[2]):gsub("#3#", vars[3])
         wip_locked.text_parsed[i] = loc_parse_string(loc)
     end
@@ -405,7 +405,7 @@ if orig_locked_loc_vars then
     ---@diagnostic disable-next-line: duplicate-set-field
     function CardSleeves.Sleeve:locked_loc_vars(...)
         return isAPProfileLoaded() and {
-            key = "Pingo_sleeve_discover",
+            key = "Pingo_sleeve_find",
             vars = loc_vars(to_object(reverse_mapper[self.key]), self),
         } or orig_locked_loc_vars(self, ...)
     end
