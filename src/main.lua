@@ -210,9 +210,9 @@ end
 
 local orig_generate_card_ui = generate_card_ui
 
-function generate_card_ui(_c, full_UI_table, specific_vars, card_type, ...)
-    if not isAPProfileLoaded() then
-        return orig_generate_card_ui(_c, full_UI_table, specific_vars, card_type, ...)
+function generate_card_ui(_c, full_UI_table, specific_vars, card_type, badges, hide_desc, main_start, main_end, card, ...)
+    if not isAPProfileLoaded() or not card then
+        return orig_generate_card_ui(_c, full_UI_table, specific_vars, card_type, badges, hide_desc, main_start, main_end, card, ...)
     end
 
     local vanilla_key = reverse_mapper[_c.key]
@@ -220,13 +220,13 @@ function generate_card_ui(_c, full_UI_table, specific_vars, card_type, ...)
 
     if not vanilla_key then
         wip_locked.text_parsed = wip_locked.Pingo_text_parsed or wip_locked.text_parsed
-        return orig_generate_card_ui(_c, full_UI_table, specific_vars, card_type, ...)
+        return orig_generate_card_ui(_c, full_UI_table, specific_vars, card_type, badges, hide_desc, main_start, main_end, card, ...)
     end
 
     local vanilla = to_object(vanilla_key)
 
     if vanilla.ap_unlocked then
-        return orig_generate_card_ui(_c, full_UI_table, specific_vars, card_type, ...)
+        return orig_generate_card_ui(_c, full_UI_table, specific_vars, card_type, badges, hide_desc, main_start, main_end, card, ...)
     end
 
     local vars = loc_vars(vanilla, _c)
@@ -238,7 +238,8 @@ function generate_card_ui(_c, full_UI_table, specific_vars, card_type, ...)
         wip_locked.text_parsed[i] = loc_parse_string(loc)
     end
 
-    local ui = orig_generate_card_ui(_c, full_UI_table, specific_vars, _c.ap_unlocked and card_type or "Locked", ...)
+    local ap_card_type = _c.ap_unlocked and card_type or "Locked"
+    local ui = orig_generate_card_ui(_c, full_UI_table, specific_vars, ap_card_type, badges, hide_desc, main_start, main_end, card, ...)
     return G.STATE == G.STATES.MENU and ui or orig_generate_card_ui(vanilla, ui)
 end
 
@@ -350,6 +351,21 @@ function localize(args, ...)
     end
 
     return orig_localize(args, ...)
+end
+
+local orig_localize_name = G.AP.localize_name
+
+---@diagnostic disable-next-line: duplicate-set-field
+function G.AP.localize_name(item_id, to_self, ...)
+    local name, desc, info_queue = orig_localize_name(item_id, to_self, ...)
+
+    if to_self then
+        for _, v in pairs(mapper[G.APItems[item_id]]) do
+            info_queue[#info_queue + 1] = to_object(v)
+        end
+    end
+
+    return name, desc, info_queue
 end
 
 local orig_setup_stake = G.AP.setup_stake

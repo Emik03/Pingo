@@ -20,11 +20,11 @@ continuation_indent = 4
 
 # this mean utf8 length , if this is 'unset' then the line width is no longer checked
 # this option decides when to chopdown the code
-max_line_length = lf
+max_line_length = 140
 
 # optional crlf/lf/cr/auto, if it is 'auto', in windows it is crlf other platforms are lf
 # in neovim the value 'auto' is not a valid option, please use 'unset' 
-end_of_line = auto
+end_of_line = lf
 
 #  none/ comma / semicolon / only_kv_colon
 table_separator_style = none
