@@ -6,7 +6,7 @@
     "author": [
         "Emik"
     ],
-    "version": "1.2.3",
+    "version": "1.2.4",
     "display_name": "Pingo",
     "badge_colour": "B17419",
     "main_file": "src/main.lua",

@@ -359,7 +359,7 @@ local orig_localize_name = G.AP.localize_name
 function G.AP.localize_name(item_id, to_self, ...)
     local name, desc, info_queue = orig_localize_name(item_id, to_self, ...)
 
-    if to_self then
+    if to_self and mapper[G.APItems[item_id]] then
         for _, v in pairs(mapper[G.APItems[item_id]]) do
             info_queue[#info_queue + 1] = to_object(v)
         end
