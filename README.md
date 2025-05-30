@@ -38,6 +38,8 @@ This repository is licensed under the [MPL-2 License](https://github.com/Emik03/
 
 # Credits
 
-Massive thank you to [larswijn](https://github.com/larswijn)'s randomizer, including everyone who helped in its creation. This mod would have been so much harder to make had I required to make everything from scratch.
+Massive thank you to [BurndiL](https://github.com/BurndiL)'s randomizer, including everyone who helped in its creation. This mod would have been so much harder to make had I required to make everything from scratch.
 
 Additionally, a big thank you to the wider [Archipelago](https://github.com/ArchipelagoMW/Archipelago) community for the entire backend and tooling that holds everything together.
+
+Being a Balatro mod, I'm naturally thankful for [Steamodded](https://github.com/Steamodded/smods) for making this game less painful to mod, and to give all objects a standardized, predictable, and consistent behavior in which this mod relies on.
